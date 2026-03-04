@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { validateSession } from '@/lib/auth';
 import Sidebar from '@/components/Sidebar';
+import XPBar from '@/components/XPBar';
 
 export default async function DashboardLayout({
     children,
@@ -18,10 +19,15 @@ export default async function DashboardLayout({
 
             {/* Main content — offset by sidebar on desktop */}
             <main
-                className="min-h-screen pb-20 md:pb-0"
+                className="min-h-screen pb-20 md:pb-0 flex flex-col"
                 style={{ marginLeft: 'var(--sidebar-width)' }}
             >
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+                {/* Top Navigation Bar with XP */}
+                <header className="sticky top-0 z-30 w-full px-4 py-3 bg-[#0A0A0F]/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-end">
+                    <XPBar />
+                </header>
+
+                <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 flex-1">
                     {children}
                 </div>
             </main>

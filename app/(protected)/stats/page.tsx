@@ -1,95 +1,79 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 export default function StatsPage() {
+    const [stats, setStats] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                if (data.success) {
+                    setStats(data.data);
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        }
+        loadStats();
+    }, []);
+
+    if (loading) return <div className="p-10 text-center"><div className="animate-spin w-8 h-8 mx-auto border-2 border-blue-500 border-t-transparent rounded-full" /></div>;
+
+    if (!stats) return <div className="p-10 text-center text-white">Failed to load stats.</div>;
+
     return (
-        <div className="space-y-6">
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-                <h1 className="text-2xl font-bold text-white">Stats</h1>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                    Your performance at a glance
-                </p>
-            </motion.div>
+        <div className="space-y-6 pb-20">
+            <div>
+                <h1 className="text-2xl font-bold text-white">Stats & Progress</h1>
+                <p className="text-sm text-white/60 mt-1">Numbers don't lie.</p>
+            </div>
 
             {/* Level Card */}
-            <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="glass-card p-6"
-            >
-                <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
-                        style={{ background: 'rgba(245, 158, 11, 0.15)' }}>
-                        ⭐
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="relative overflow-hidden rounded-2xl p-6 shadow-2xl" style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)' }}>
+                <div className="absolute top-0 right-0 p-8 opacity-10">
+                    <div className="text-9xl">🏆</div>
+                </div>
+                <div className="relative z-10 flex items-center gap-6">
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center border-4 border-yellow-500 bg-black/50 shadow-[0_0_30px_rgba(234,179,8,0.3)]">
+                        <span className="text-3xl font-black text-white">{stats.level}</span>
                     </div>
-                    <div className="flex-1">
-                        <div className="text-sm" style={{ color: 'var(--text-muted)' }}>Current Level</div>
-                        <div className="text-2xl font-bold" style={{ color: 'var(--accent-gold)' }}>Level 1 — Rookie</div>
-                        <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                            <div className="h-full rounded-full" style={{ width: '0%', background: 'linear-gradient(90deg, var(--accent-gold), var(--accent-blue))' }} />
-                        </div>
-                        <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>0 / 100 XP to Level 2</div>
+                    <div>
+                        <h2 className="text-sm font-bold tracking-widest text-yellow-500 uppercase">Current Level</h2>
+                        <p className="text-3xl font-black text-white tracking-tight mt-1">{stats.total_xp.toLocaleString()} XP</p>
                     </div>
                 </div>
             </motion.div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                    { label: 'Total XP', value: '0', color: 'var(--accent-gold)' },
-                    { label: 'Current Streak', value: '0 days', color: 'var(--accent-blue)' },
-                    { label: 'Longest Streak', value: '0 days', color: 'var(--accent-green)' },
-                    { label: 'Tasks Completed', value: '0', color: 'var(--text-primary)' },
-                    { label: 'Tasks Verified', value: '0', color: 'var(--accent-green)' },
-                    { label: 'Tasks Failed', value: '0', color: 'var(--accent-red)' },
-                ].map((stat, i) => (
-                    <motion.div
-                        key={stat.label}
-                        initial={{ opacity: 0, y: 15 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 + i * 0.05 }}
-                        className="glass-card p-4"
-                    >
-                        <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{stat.label}</div>
-                        <div className="text-2xl font-bold mt-1" style={{ color: stat.color }}>{stat.value}</div>
-                    </motion.div>
-                ))}
+            <div className="grid grid-cols-2 gap-4">
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="glass-card p-5 flex flex-col items-center text-center">
+                    <div className="text-3xl mb-2">🔥</div>
+                    <p className="text-2xl font-bold text-white">{stats.current_streak}</p>
+                    <p className="text-xs text-white/60 font-medium uppercase tracking-wider">Day Streak</p>
+                </motion.div>
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="glass-card p-5 flex flex-col items-center text-center">
+                    <div className="text-3xl mb-2">✅</div>
+                    <p className="text-2xl font-bold text-white">{stats.tasks_completed}</p>
+                    <p className="text-xs text-white/60 font-medium uppercase tracking-wider">Tasks Done</p>
+                </motion.div>
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="glass-card p-5 flex flex-col items-center text-center">
+                    <div className="text-3xl mb-2">📸</div>
+                    <p className="text-2xl font-bold text-white">{stats.tasks_verified}</p>
+                    <p className="text-xs text-white/60 font-medium uppercase tracking-wider">Verified Proofs</p>
+                </motion.div>
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }} className="glass-card p-5 flex flex-col items-center text-center">
+                    <div className="text-3xl mb-2 grayscale opacity-50">💀</div>
+                    <p className="text-2xl font-bold text-red-500">{stats.tasks_failed}</p>
+                    <p className="text-xs text-white/60 font-medium uppercase tracking-wider">Tasks Failed</p>
+                </motion.div>
             </div>
-
-            {/* Charts Placeholder */}
-            <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="glass-card p-6"
-            >
-                <h2 className="text-lg font-semibold text-white mb-4">XP Over Time</h2>
-                <div className="text-center py-12 space-y-3">
-                    <div className="text-4xl">📊</div>
-                    <p style={{ color: 'var(--text-secondary)' }}>Charts will appear once you start earning XP</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Full stats dashboard coming in Phase 3</p>
-                </div>
-            </motion.div>
-
-            {/* Achievements Placeholder */}
-            <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="glass-card p-6"
-            >
-                <h2 className="text-lg font-semibold text-white mb-4">Achievements</h2>
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                    {['🏆', '🔥', '⚡', '💪', '🎯'].map((emoji, i) => (
-                        <div key={i} className="aspect-square rounded-xl flex items-center justify-center text-2xl opacity-20"
-                            style={{ background: 'rgba(255,255,255,0.03)' }}>
-                            {emoji}
-                        </div>
-                    ))}
-                </div>
-            </motion.div>
         </div>
     );
 }
