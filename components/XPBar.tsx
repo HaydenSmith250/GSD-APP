@@ -2,28 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { calculateLevel } from '@/lib/gamification';
+import { calculateLevel } from '@/lib/level-utils';
+import { supabase } from '@/lib/supabase';
 
 export default function XPBar() {
     const [stats, setStats] = useState<any>(null);
 
     useEffect(() => {
-        async function loadStats() {
-            try {
-                const res = await fetch('/api/stats');
-                const data = await res.json();
-                if (data.success && data.data) {
-                    setStats(data.data);
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        }
-        loadStats();
+        fetch('/api/stats').then(r => r.json()).then(d => {
+            if (d.success && d.data) setStats(d.data);
+        });
 
-        // Refresh every 30s to keep in sync with task completions
-        const interval = setInterval(loadStats, 30000);
-        return () => clearInterval(interval);
+        const channel = supabase
+            .channel('xpbar-stats')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'stats' }, (payload) => {
+                if (payload.new) setStats(payload.new);
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
     }, []);
 
     if (!stats) return null;

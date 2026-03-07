@@ -17,8 +17,21 @@ export default function ChatPage() {
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
     const [error, setError] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(true);
+
+    const SUGGESTIONS = ['How am I doing?', 'Help me plan my day', 'I need motivation', 'Create a task for me'];
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+
+    // Pre-fill input from ?task= query param
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const taskParam = params.get('task');
+        if (taskParam) {
+            setInput(`Let's talk about my task: ${taskParam}`);
+            setTimeout(() => inputRef.current?.focus(), 100);
+        }
+    }, []);
 
     // Load chat history on mount
     useEffect(() => {
@@ -54,6 +67,7 @@ export default function ChatPage() {
 
         setInput('');
         setError('');
+        setShowSuggestions(false);
 
         // Optimistically add user message
         const tempUserMsg: Message = {
@@ -226,6 +240,26 @@ export default function ChatPage() {
 
                     <div ref={messagesEndRef} />
                 </div>
+
+                {/* Suggestion chips */}
+                {showSuggestions && messages.length === 0 && !initialLoading && (
+                    <div className="flex-shrink-0 px-4 pb-2 flex gap-2 flex-wrap">
+                        {SUGGESTIONS.map(s => (
+                            <button
+                                key={s}
+                                onClick={() => { setInput(s); inputRef.current?.focus(); }}
+                                className="text-xs px-3 py-1.5 rounded-full transition-all hover:scale-105 active:scale-95"
+                                style={{
+                                    background: 'rgba(59,130,246,0.1)',
+                                    color: 'var(--accent-blue)',
+                                    border: '1px solid rgba(59,130,246,0.25)',
+                                }}
+                            >
+                                {s}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {/* Input Area */}
                 <div className="flex-shrink-0 border-t px-4 py-3" style={{ borderColor: 'var(--bg-card-border)' }}>

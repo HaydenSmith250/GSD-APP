@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "GSD",
   },
+  icons: {
+    apple: "/apple-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -23,6 +26,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

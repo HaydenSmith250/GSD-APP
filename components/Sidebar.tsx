@@ -3,6 +3,9 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { calculateLevel } from '@/lib/level-utils';
+import { supabase } from '@/lib/supabase';
 
 const NAV_ITEMS = [
     {
@@ -62,6 +65,22 @@ const NAV_ITEMS = [
 export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
+    const [stats, setStats] = useState<any>(null);
+
+    useEffect(() => {
+        fetch('/api/stats').then(r => r.json()).then(d => { if (d.success) setStats(d.data); });
+
+        const channel = supabase
+            .channel('sidebar-stats')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'stats' }, (payload) => {
+                if (payload.new) setStats(payload.new);
+            })
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, []);
+
+    const levelInfo = stats ? calculateLevel(stats.total_xp) : null;
 
     async function handleLogout() {
         await fetch('/api/auth/logout', { method: 'POST' });
@@ -124,14 +143,23 @@ export default function Sidebar() {
                     })}
                 </nav>
 
-                {/* XP bar placeholder */}
+                {/* XP bar */}
                 <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--bg-card-border)' }}>
                     <div className="flex items-center justify-between text-xs mb-1.5">
-                        <span className="font-semibold" style={{ color: 'var(--accent-gold)' }}>Level 1 — Rookie</span>
-                        <span style={{ color: 'var(--text-muted)' }}>0 XP</span>
+                        <span className="font-semibold" style={{ color: 'var(--accent-gold)' }}>
+                            {stats ? `Level ${stats.level}` : 'Level —'}
+                        </span>
+                        <span style={{ color: 'var(--text-muted)' }}>
+                            {stats ? `${stats.total_xp.toLocaleString()} XP` : '...'}
+                        </span>
                     </div>
                     <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                        <div className="h-full rounded-full" style={{ width: '0%', background: 'linear-gradient(90deg, var(--accent-gold), var(--accent-blue))' }} />
+                        <motion.div
+                            animate={{ width: levelInfo ? `${levelInfo.progress}%` : '0%' }}
+                            transition={{ duration: 0.8, ease: 'easeOut' }}
+                            className="h-full rounded-full"
+                            style={{ background: 'linear-gradient(90deg, var(--accent-gold), var(--accent-blue))' }}
+                        />
                     </div>
                 </div>
 
@@ -157,6 +185,7 @@ export default function Sidebar() {
                 className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t"
                 style={{
                     height: 'var(--bottom-nav-height)',
+                    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
                     background: 'rgba(10, 10, 15, 0.9)',
                     backdropFilter: 'blur(16px)',
                     WebkitBackdropFilter: 'blur(16px)',

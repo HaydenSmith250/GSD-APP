@@ -1,5 +1,17 @@
 import { supabaseAdmin } from './supabase-admin';
 
+export const ACHIEVEMENTS = [
+    { id: 'first_blood',   name: 'First Blood',   icon: '🩸', description: 'Complete your first task',      check: (s: any) => s.tasks_completed >= 1 },
+    { id: 'proof_of_work', name: 'Proof of Work',  icon: '📸', description: 'First photo verification',     check: (s: any) => s.tasks_verified >= 1 },
+    { id: 'on_a_roll',     name: 'On a Roll',      icon: '🔥', description: '3-day streak',                  check: (s: any) => s.longest_streak >= 3 },
+    { id: 'week_warrior',  name: 'Week Warrior',   icon: '💪', description: '7-day streak',                  check: (s: any) => s.longest_streak >= 7 },
+    { id: 'century_club',  name: 'Century Club',   icon: '💯', description: 'Earn 100 XP total',            check: (s: any) => s.total_xp >= 100 },
+    { id: 'grinder',       name: 'Grinder',        icon: '⚙️', description: '10 tasks completed',           check: (s: any) => s.tasks_completed >= 10 },
+    { id: 'no_excuses',    name: 'No Excuses',     icon: '🎯', description: '25 proofs submitted',          check: (s: any) => s.tasks_verified >= 25 },
+    { id: 'unstoppable',   name: 'Unstoppable',    icon: '🚀', description: '30-day streak',                check: (s: any) => s.longest_streak >= 30 },
+    { id: 'xp_machine',    name: 'XP Machine',     icon: '⚡', description: 'Earn 1,000 XP total',         check: (s: any) => s.total_xp >= 1000 },
+];
+
 const LEVEL_THRESHOLDS = [
     0,      // Level 1: Rookie
     100,    // Level 2: Beginner
@@ -102,6 +114,24 @@ export async function awardXp(amount: number, reason: string): Promise<{ leveled
         if (reason === 'task_verified_photo') tasksVerified++;
         if (reason === 'task_failed') tasksFailed++;
 
+        // Check which achievements are newly unlocked
+        const updatedStats = {
+            ...currentStats,
+            total_xp: newXp,
+            level: newLevelData.level,
+            tasks_completed: tasksCompleted,
+            tasks_verified: tasksVerified,
+            tasks_failed: tasksFailed,
+        };
+        const existingAchievements: { id: string; unlocked_at: string }[] = Array.isArray(currentStats.achievements) ? currentStats.achievements : [];
+        const existingIds = new Set(existingAchievements.map((a) => a.id));
+        const newAchievements = [...existingAchievements];
+        for (const achievement of ACHIEVEMENTS) {
+            if (!existingIds.has(achievement.id) && achievement.check(updatedStats)) {
+                newAchievements.push({ id: achievement.id, unlocked_at: new Date().toISOString() });
+            }
+        }
+
         await supabaseAdmin
             .from('stats')
             .update({
@@ -111,6 +141,7 @@ export async function awardXp(amount: number, reason: string): Promise<{ leveled
                 tasks_completed: tasksCompleted,
                 tasks_verified: tasksVerified,
                 tasks_failed: tasksFailed,
+                achievements: newAchievements,
                 updated_at: new Date().toISOString()
             })
             .eq('id', currentStats.id);

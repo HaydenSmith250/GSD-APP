@@ -19,8 +19,8 @@ export default async function DashboardLayout({
 
             {/* Main content — offset by sidebar on desktop */}
             <main
-                className="min-h-screen pb-20 md:pb-0 flex flex-col"
-                style={{ marginLeft: 'var(--sidebar-width)' }}
+                className="min-h-screen md:pb-0 flex flex-col"
+                style={{ marginLeft: 'var(--sidebar-width)', paddingBottom: 'var(--bottom-nav-height)' }}
             >
                 {/* Top Navigation Bar with XP */}
                 <header className="sticky top-0 z-30 w-full px-4 py-3 bg-[#0A0A0F]/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-end">

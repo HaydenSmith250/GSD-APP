@@ -40,7 +40,7 @@ export async function POST(request: Request) {
         if (!isAuthenticated) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         const body = await request.json();
-        const { title, description, priority, task_type, duration_minutes, checkin_interval_minutes, verification_prompt } = body;
+        const { title, description, priority, task_type, duration_minutes, checkin_interval_minutes, verification_prompt, category, due_date, recurring_pattern } = body;
 
         if (!title) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
 
@@ -54,6 +54,9 @@ export async function POST(request: Request) {
             duration_minutes: duration_minutes || null,
             checkin_interval_minutes: checkin_interval_minutes || null,
             verification_prompt: verification_prompt || 'A photo showing clear progress or completion of the task.',
+            category: category || 'general',
+            due_date: due_date || null,
+            recurring_pattern: recurring_pattern || null,
             status: 'pending',
             xp_reward,
             checkins: [],

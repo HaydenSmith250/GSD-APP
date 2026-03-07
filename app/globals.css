@@ -28,7 +28,7 @@
   /* Sizes */
   --sidebar-width: 260px;
   --header-height: 64px;
-  --bottom-nav-height: 72px;
+  --bottom-nav-height: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ═══ Base ═══ */
