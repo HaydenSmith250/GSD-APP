@@ -23,9 +23,6 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "GSD",
   },
-  icons: {
-    apple: "/apple-icon.png",
-  },
 };
 
 export const viewport: Viewport = {
