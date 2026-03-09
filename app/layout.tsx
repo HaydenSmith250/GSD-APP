@@ -1,10 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans, Outfit } from "next/font/google";
+import Navigation from "../components/Navigation";
+import PageTransition from "../components/PageTransition";
 import "./globals.css";
 
-const inter = Inter({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-jakarta",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
 });
 
 export const metadata: Metadata = {
@@ -36,8 +43,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} font-sans antialiased`}>
-        {children}
+      <body className={`${jakarta.variable} ${outfit.variable} font-body antialiased bg-gsd-bg text-gray-100 flex flex-col min-h-screen`}>
+        <PageTransition>
+          {children}
+        </PageTransition>
+        <Navigation />
       </body>
     </html>
   );

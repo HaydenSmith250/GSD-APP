@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Camera, Goal, Info, RefreshCw, XCircle, Trophy, ArrowLeft } from 'lucide-react';
 
 export default function ActiveTaskPage() {
     const { id } = useParams();
@@ -19,9 +20,13 @@ export default function ActiveTaskPage() {
     const [xpFloat, setXpFloat] = useState<{ amount: string; key: number } | null>(null);
     const [levelUpInfo, setLevelUpInfo] = useState<{ level: number } | null>(null);
     const [pendingUpload, setPendingUpload] = useState<{ file: File; preview: string; checkinType: string } | null>(null);
-    const startInputRef = useRef<HTMLInputElement>(null);
-    const periodicInputRef = useRef<HTMLInputElement>(null);
-    const endInputRef = useRef<HTMLInputElement>(null);
+
+    // Custom Camera State
+    const [showCamera, setShowCamera] = useState<string | null>(null); // contains checkinType if open
+    const [stream, setStream] = useState<MediaStream | null>(null);
+    const [cameraError, setCameraError] = useState('');
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
         loadTask();
@@ -59,12 +64,12 @@ export default function ActiveTaskPage() {
 
     async function loadTask() {
         try {
-            const res = await fetch(`/api/tasks?status=active`);
+            const res = await fetch(`/api/tasks`); // remove ?status=active to allow viewing completed tasks
             const data = await res.json();
             if (data.success) {
                 const t = data.data.find((x: any) => x.id === id);
                 if (t) setTask(t);
-                else router.push('/tasks'); // not active anymore
+                else router.push('/tasks');
             }
         } catch (e) {
             console.error(e);
@@ -73,13 +78,56 @@ export default function ActiveTaskPage() {
         }
     }
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, checkinType: string) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const preview = URL.createObjectURL(file);
-        setPendingUpload({ file, preview, checkinType });
-        // Reset input so the same file can be re-selected after retake
-        e.target.value = '';
+    // HTML5 Custom Camera Logic
+    const openCamera = async (type: string) => {
+        setCameraError('');
+        try {
+            const mediaStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment' }
+            });
+            setStream(mediaStream);
+            setShowCamera(type);
+        } catch (err) {
+            console.error('Camera access denied:', err);
+            setCameraError('Camera access required. Please check permissions.');
+        }
+    };
+
+    const closeCamera = () => {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            setStream(null);
+        }
+        setShowCamera(null);
+    };
+
+    useEffect(() => {
+        if (showCamera && videoRef.current && stream) {
+            videoRef.current.srcObject = stream;
+        }
+    }, [showCamera, stream]);
+
+    const capturePhoto = () => {
+        if (!videoRef.current || !canvasRef.current || !showCamera) return;
+
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' });
+                    const preview = URL.createObjectURL(blob);
+                    setPendingUpload({ file, preview, checkinType: showCamera });
+                    closeCamera();
+                }
+            }, 'image/jpeg', 0.85);
+        }
     };
 
     const handleConfirmUpload = async () => {
@@ -155,71 +203,112 @@ export default function ActiveTaskPage() {
     const needsCheckin = timeLeft === 'CHECK-IN REQUIRED NOW';
 
     return (
-        <div className="flex flex-col h-[calc(100vh-80px)] md:h-[calc(100vh-32px)] space-y-4">
+        <div className="flex flex-col min-h-[calc(100vh-80px)] md:min-h-[calc(100vh-32px)] space-y-6 pb-24 safe-scrollbar overflow-y-auto">
 
             {/* Header Info */}
-            <div className="glass-card p-6 flex-shrink-0 text-center relative overflow-hidden">
-                <div className="absolute inset-0 opacity-10" style={{ background: isPending ? 'var(--accent-blue)' : needsCheckin ? 'var(--accent-red)' : 'var(--accent-emerald)' }}></div>
-                <h1 className="text-2xl font-bold text-white relative z-10">{task.title}</h1>
-                <p className="text-sm text-white/70 mt-1 relative z-10">{task.task_type.toUpperCase()} • {task.priority}</p>
+            <div className="glass-card p-6 flex-shrink-0 text-center relative overflow-hidden rounded-[2rem] border border-white/5 mx-4 mt-6 group">
+                <div className="absolute inset-0 opacity-10 transition-colors duration-1000" style={{ background: isPending ? 'var(--neon-blue)' : needsCheckin ? 'var(--neon-red)' : 'var(--neon-green)' }}></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-[50px] pointer-events-none group-hover:bg-white/10 transition-colors" />
 
-                <div className="mt-4 pb-2">
-                    <div className={`text-5xl font-mono font-bold tracking-tight ${needsCheckin ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                <h1 className="text-2xl font-black font-heading text-white relative z-10 break-words">{task.title}</h1>
+                <p className="text-xs font-bold text-gray-400 mt-2 relative z-10 uppercase tracking-widest">{task.task_type} • {task.priority}</p>
+
+                <div className="mt-6 pb-2">
+                    <div className={`${(timeLeft.includes(':') && timeLeft.length < 10) ? 'text-6xl font-mono' : 'text-xl'} font-black tracking-tighter ${needsCheckin ? 'text-neon-red animate-pulse drop-shadow-[0_0_15px_rgba(255,51,102,0.5)]' : 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]'}`}>
                         {timeLeft}
                     </div>
                     {task.status === 'in_progress' && !needsCheckin && task.next_checkin_at && (
-                        <p className="text-xs text-white/50 mt-2 uppercase tracking-widest">Until Next Verification</p>
+                        <p className="text-[10px] text-gray-500 mt-3 uppercase tracking-widest font-bold">Until Next Verification</p>
                     )}
                 </div>
             </div>
 
             {/* Main Execution Area */}
-            <div className="glass-card flex-1 p-6 flex flex-col items-center justify-center space-y-6">
+            <div className="flex-1 px-4 flex flex-col items-center justify-start space-y-6">
 
                 {lastMessage && (
-                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white/10 border border-white/20 rounded-xl p-4 w-full max-w-md">
-                        <p className="text-sm font-medium text-white">🤖 Coach Says:</p>
-                        <p className="text-white/80 mt-1 italic">"{lastMessage}"</p>
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white/5 border border-white/10 rounded-2xl p-5 w-full shadow-[0_4px_20px_rgba(0,0,0,0.5)] relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-neon-amber" />
+                        <p className="text-xs font-bold uppercase tracking-widest text-neon-amber mb-2">Coach Says:</p>
+                        <p className="text-gray-200 text-sm leading-relaxed italic">"{lastMessage}"</p>
                     </motion.div>
                 )}
 
                 {isFinished ? (
-                    <div className="text-center">
-                        <div className="text-5xl mb-4">🏆</div>
-                        <h2 className="text-2xl font-bold text-white">Task Crushed.</h2>
-                        <p className="text-white/60 mt-2">XP Awarded. Returning to dashboard...</p>
+                    <div className="text-center w-full">
+                        <div className="w-20 h-20 mx-auto bg-neon-gold/10 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,215,0,0.2)]">
+                            <Trophy size={40} className="text-neon-gold" />
+                        </div>
+                        <h2 className="text-3xl font-black font-heading text-white mb-8 drop-shadow-[0_0_10px_rgba(255,215,0,0.3)]">Task Crushed.</h2>
+
+                        <div className="glass-card bg-black/40 border border-white/5 rounded-3xl p-6 text-left space-y-5">
+                            <div className="flex justify-between items-center border-b border-white/5 pb-4">
+                                <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Type</span>
+                                <span className="text-white font-bold capitalize bg-white/10 px-3 py-1 rounded-full text-sm">{task.task_type}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-white/5 pb-4">
+                                <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Reward</span>
+                                <span className="text-neon-gold font-black text-lg drop-shadow-[0_0_10px_rgba(255,215,0,0.2)]">+{task.xp_reward} XP</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Completed At</span>
+                                <span className="text-gray-300 font-bold">{new Date(task.completed_at || task.verified_at || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                        </div>
+
+                        <button onClick={() => router.back()} className="mt-10 w-full py-4 rounded-xl font-black text-black text-lg transition-all flex items-center justify-center gap-2 group hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(0,229,255,0.3)]" style={{ background: 'var(--neon-blue)' }}>
+                            <ArrowLeft size={20} className="transition-transform group-hover:-translate-x-1" /> Return to Base
+                        </button>
                     </div>
                 ) : (
-                    <div className="w-full max-w-sm space-y-4">
-                        <p className="text-center text-sm text-white/60 mb-6 px-4">
-                            <strong>Agreed Verification:</strong> {task.verification_prompt}
-                        </p>
+                    <div className="w-full space-y-6 max-w-sm">
+                        <div className="glass-card p-5 rounded-2xl border border-white/5 bg-black/40">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Info size={16} className="text-neon-blue" />
+                                <h3 className="text-xs font-bold text-white uppercase tracking-widest">Verification Target</h3>
+                            </div>
+                            <p className="text-sm text-gray-300 leading-relaxed pl-6">
+                                {(() => {
+                                    let vText = task.verification_prompt;
+                                    try {
+                                        if (vText && vText.startsWith('{')) {
+                                            const parsed = JSON.parse(vText);
+                                            vText = isPending ? parsed.start : parsed.end;
+                                        }
+                                    } catch (e) { }
+                                    return vText;
+                                })()}
+                            </p>
+                        </div>
+
+                        {cameraError && (
+                            <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-xl text-sm text-center">
+                                {cameraError}
+                            </div>
+                        )}
 
                         {isPending && (
                             <div className="space-y-3">
-                                <button onClick={() => startInputRef.current?.click()} disabled={uploading} className="w-full py-4 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
-                                    {uploading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '📸 Send Start Proof'}
+                                <button onClick={() => openCamera('start')} disabled={uploading} className="w-full py-4 rounded-[1.5rem] font-black text-black bg-neon-blue hover:bg-[#00c2d9] shadow-[0_0_20px_rgba(0,229,255,0.3)] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 hover:scale-[1.02]">
+                                    {uploading ? <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : <><Camera size={20} /> Initialize Scanner</>}
                                 </button>
-                                <input type="file" accept="image/*" capture="environment" ref={startInputRef} className="hidden" onChange={(e) => handleFileSelect(e, 'start')} />
                             </div>
                         )}
 
                         {!isPending && (
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 {task.checkin_interval_minutes && (
                                     <>
-                                        <button onClick={() => periodicInputRef.current?.click()} disabled={uploading} className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 ${needsCheckin ? 'bg-red-600 hover:bg-red-500 shadow-red-600/20 animate-pulse' : 'bg-white/10 hover:bg-white/20'}`}>
-                                            {uploading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '⏱ Send Periodic Check-in'}
+                                        <button onClick={() => openCamera('periodic')} disabled={uploading} className={`w-full py-4 rounded-[1.5rem] font-black shadow-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 hover:scale-[1.02] border ${needsCheckin ? 'bg-neon-red/10 border-neon-red text-neon-red shadow-[0_0_20px_rgba(255,51,102,0.3)] animate-pulse' : 'bg-white/5 border-white/10 text-white hover:bg-white/10'}`}>
+                                            {uploading ? <div className="w-5 h-5 border-2 border-current/30 border-t-current rounded-full animate-spin" /> : <><RefreshCw size={20} /> Periodic Scan</>}
                                         </button>
-                                        <input type="file" accept="image/*" capture="environment" ref={periodicInputRef} className="hidden" onChange={(e) => handleFileSelect(e, 'periodic')} />
                                     </>
                                 )}
 
-                                <div className="pt-4 mt-4 border-t border-white/10">
-                                    <button onClick={() => endInputRef.current?.click()} disabled={uploading} className="w-full py-4 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-500 shadow-lg shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
-                                        {uploading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : (task.task_type === 'timed' ? '🏁 Finish & Verify' : '🏁 Mark Goal Complete & Verify')}
+                                <div>
+                                    <button onClick={() => openCamera(task.task_type === 'goal' ? 'goal_finish' : 'end')} disabled={uploading} className="w-full py-4 rounded-[1.5rem] font-black text-black bg-neon-green hover:bg-[#00cc66] shadow-[0_0_20px_rgba(0,255,153,0.3)] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 hover:scale-[1.02]">
+                                        {uploading ? <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : <><Goal size={20} /> Final Verification Scan</>}
                                     </button>
-                                    <input type="file" accept="image/*" capture="environment" ref={endInputRef} className="hidden" onChange={(e) => handleFileSelect(e, task.task_type === 'goal' ? 'goal_finish' : 'end')} />
                                 </div>
                             </div>
                         )}
@@ -230,9 +319,9 @@ export default function ActiveTaskPage() {
                 {!isPending && !isFinished && (
                     <button
                         onClick={() => setAbandonDialog(true)}
-                        className="text-xs text-white/25 hover:text-red-400 transition-colors mt-2"
+                        className="text-xs font-bold text-gray-500 hover:text-neon-red transition-colors mt-8 uppercase tracking-widest flex items-center gap-1.5 mx-auto"
                     >
-                        Abandon task
+                        <XCircle size={14} /> Abandon task
                     </button>
                 )}
             </div>
@@ -276,6 +365,82 @@ export default function ActiveTaskPage() {
                             <p className="text-7xl font-black text-white">{levelUpInfo.level}</p>
                             <p className="text-white/50 mt-4 text-sm">Keep pushing.</p>
                         </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Custom Camera HUD Modal */}
+            <AnimatePresence>
+                {showCamera && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 bg-black flex items-center justify-center overflow-hidden"
+                    >
+                        {/* Live Video Feed */}
+                        <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            className="absolute inset-0 w-full h-full object-cover"
+                        />
+                        <canvas ref={canvasRef} className="hidden" />
+
+                        {/* Scanner Overlay HUD */}
+                        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between py-12 px-6">
+
+                            {/* Top info */}
+                            <div className="bg-black/40 backdrop-blur-md px-6 py-2 border border-neon-green/30 rounded-full flex items-center gap-3 shadow-[0_0_20px_rgba(0,255,153,0.2)]">
+                                <div className="w-3 h-3 rounded-full bg-neon-green animate-pulse" />
+                                <span className="font-bold text-neon-green uppercase tracking-widest text-xs">Awaiting Target Verification</span>
+                            </div>
+
+                            {/* Center Reticle / HUD Corners */}
+                            <div className="relative w-64 h-64 sm:w-80 sm:h-80 opacity-80">
+                                {/* Top Left */}
+                                <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-neon-green rounded-tl-xl" />
+                                {/* Top Right */}
+                                <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-neon-green rounded-tr-xl" />
+                                {/* Bottom Left */}
+                                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-neon-green rounded-bl-xl" />
+                                {/* Bottom Right */}
+                                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-neon-green rounded-br-xl" />
+
+                                {/* Center Crosshair */}
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center opacity-30">
+                                    <div className="w-8 h-[1px] bg-neon-green absolute" />
+                                    <div className="h-8 w-[1px] bg-neon-green absolute" />
+                                </div>
+                            </div>
+
+                            {/* Scanning textual hints */}
+                            <div className="text-center w-full space-y-2 mb-20 max-w-sm mx-auto">
+                                <p className="text-white/80 font-mono text-xs uppercase bg-black/50 p-2 rounded-lg">
+                                    Provide visual proof: {task.verification_prompt}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Camera Controls */}
+                        <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-black via-black/80 to-transparent flex items-center justify-center gap-12 pb-8">
+                            <button
+                                onClick={closeCamera}
+                                className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors backdrop-blur-md"
+                            >
+                                <XCircle size={28} />
+                            </button>
+
+                            <button
+                                onClick={capturePhoto}
+                                className="w-20 h-20 rounded-full border-4 border-neon-green flex items-center justify-center group active:scale-95 transition-transform"
+                            >
+                                <div className="w-16 h-16 rounded-full bg-neon-green shadow-[0_0_30px_rgba(0,255,153,0.5)] group-hover:bg-[#00e65c] transition-colors" />
+                            </button>
+
+                            <div className="w-14 h-14" /> {/* Spacer to balance flex layout */}
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

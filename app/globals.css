@@ -1,24 +1,27 @@
 @import "tailwindcss";
 
-/* ═══ GSD Design System ═══ */
+@theme {
+  --color-gsd-bg: #0A0A0F;
+  --color-gsd-surface: #15151A;
+  --color-gsd-card: rgba(255, 255, 255, 0.04);
+  --color-gsd-card-hover: rgba(255, 255, 255, 0.08);
+  --color-gsd-card-border: rgba(255, 255, 255, 0.08);
+
+  /* Gamification Accents */
+  --color-neon-green: #39FF14;
+  --color-neon-amber: #FFB000;
+  --color-neon-red: #FF3333;
+  --color-neon-blue: #00E5FF;
+
+  --font-heading: var(--font-outfit), sans-serif;
+  --font-body: var(--font-jakarta), sans-serif;
+}
+
+/* ═══ GSD Gamification Design System ═══ */
 
 :root {
-  /* Core palette */
   --bg-primary: #0A0A0F;
-  --bg-secondary: #12121A;
-  --bg-card: rgba(255, 255, 255, 0.05);
-  --bg-card-hover: rgba(255, 255, 255, 0.08);
-  --bg-card-border: rgba(255, 255, 255, 0.08);
-
-  /* Accent colors */
-  --accent-blue: #3B82F6;
-  --accent-blue-glow: rgba(59, 130, 246, 0.3);
-  --accent-green: #10B981;
-  --accent-green-glow: rgba(16, 185, 129, 0.3);
-  --accent-gold: #F59E0B;
-  --accent-gold-glow: rgba(245, 158, 11, 0.3);
-  --accent-red: #EF4444;
-  --accent-red-glow: rgba(239, 68, 68, 0.3);
+  --bg-secondary: #15151A;
 
   /* Text */
   --text-primary: #F1F5F9;
@@ -26,8 +29,6 @@
   --text-muted: #475569;
 
   /* Sizes */
-  --sidebar-width: 260px;
-  --header-height: 64px;
   --bottom-nav-height: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
@@ -37,7 +38,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   background: var(--bg-primary);
@@ -45,6 +47,10 @@ html, body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none;
+  /* Prevents iOS rubber-banding bounce */
+  -webkit-tap-highlight-color: transparent;
+  /* Removes blue tap box */
 }
 
 body {
@@ -78,34 +84,45 @@ body {
 /* ═══ Glass Card ═══ */
 
 .glass-card {
-  background: var(--bg-card);
+  background: var(--color-gsd-card);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--bg-card-border);
-  border-radius: 16px;
+  border: 1px solid var(--color-gsd-card-border);
+  border-radius: 20px;
 }
 
 .glass-card-hover {
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card-hover:hover {
-  background: var(--bg-card-hover);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--color-gsd-card-hover);
+  border-color: rgba(255, 255, 255, 0.15);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 /* ═══ Glow Effects ═══ */
 
-.glow-blue  { box-shadow: 0 0 20px var(--accent-blue-glow); }
-.glow-green { box-shadow: 0 0 20px var(--accent-green-glow); }
-.glow-gold  { box-shadow: 0 0 20px var(--accent-gold-glow); }
-.glow-red   { box-shadow: 0 0 20px var(--accent-red-glow); }
+.glow-blue {
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.2);
+}
+
+.glow-green {
+  box-shadow: 0 0 24px rgba(57, 255, 20, 0.2);
+}
+
+.glow-gold {
+  box-shadow: 0 0 24px rgba(255, 176, 0, 0.2);
+}
+
+.glow-red {
+  box-shadow: 0 0 24px rgba(255, 51, 51, 0.2);
+}
 
 /* ═══ Utility ═══ */
 
 .gradient-text {
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+  background: linear-gradient(135deg, var(--color-neon-blue), var(--color-neon-green));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -114,13 +131,27 @@ body {
 /* ═══ Animations ═══ */
 
 @keyframes pulse-glow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 @keyframes slide-up {
-  from { transform: translateY(10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .animate-slide-up {
@@ -136,10 +167,13 @@ body {
 
 /* ═══ Input ═══ */
 
-input, textarea, select {
+input,
+textarea,
+select {
   color: var(--text-primary);
 }
 
-input::placeholder, textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--text-muted);
 }

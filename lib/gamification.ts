@@ -1,32 +1,21 @@
 import { supabaseAdmin } from './supabase-admin';
 
 export const ACHIEVEMENTS = [
-    { id: 'first_blood',   name: 'First Blood',   icon: '🩸', description: 'Complete your first task',      check: (s: any) => s.tasks_completed >= 1 },
-    { id: 'proof_of_work', name: 'Proof of Work',  icon: '📸', description: 'First photo verification',     check: (s: any) => s.tasks_verified >= 1 },
-    { id: 'on_a_roll',     name: 'On a Roll',      icon: '🔥', description: '3-day streak',                  check: (s: any) => s.longest_streak >= 3 },
-    { id: 'week_warrior',  name: 'Week Warrior',   icon: '💪', description: '7-day streak',                  check: (s: any) => s.longest_streak >= 7 },
-    { id: 'century_club',  name: 'Century Club',   icon: '💯', description: 'Earn 100 XP total',            check: (s: any) => s.total_xp >= 100 },
-    { id: 'grinder',       name: 'Grinder',        icon: '⚙️', description: '10 tasks completed',           check: (s: any) => s.tasks_completed >= 10 },
-    { id: 'no_excuses',    name: 'No Excuses',     icon: '🎯', description: '25 proofs submitted',          check: (s: any) => s.tasks_verified >= 25 },
-    { id: 'unstoppable',   name: 'Unstoppable',    icon: '🚀', description: '30-day streak',                check: (s: any) => s.longest_streak >= 30 },
-    { id: 'xp_machine',    name: 'XP Machine',     icon: '⚡', description: 'Earn 1,000 XP total',         check: (s: any) => s.total_xp >= 1000 },
+    { id: 'first_blood', name: 'First Blood', icon: '🩸', description: 'Complete your first task', check: (s: any) => s.tasks_completed >= 1 },
+    { id: 'proof_of_work', name: 'Proof of Work', icon: '📸', description: 'First photo verification', check: (s: any) => s.tasks_verified >= 1 },
+    { id: 'on_a_roll', name: 'On a Roll', icon: '🔥', description: '3-day streak', check: (s: any) => s.longest_streak >= 3 },
+    { id: 'week_warrior', name: 'Week Warrior', icon: '💪', description: '7-day streak', check: (s: any) => s.longest_streak >= 7 },
+    { id: 'century_club', name: 'Century Club', icon: '💯', description: 'Earn 100 XP total', check: (s: any) => s.total_xp >= 100 },
+    { id: 'grinder', name: 'Grinder', icon: '⚙️', description: '10 tasks completed', check: (s: any) => s.tasks_completed >= 10 },
+    { id: 'no_excuses', name: 'No Excuses', icon: '🎯', description: '25 proofs submitted', check: (s: any) => s.tasks_verified >= 25 },
+    { id: 'unstoppable', name: 'Unstoppable', icon: '🚀', description: '30-day streak', check: (s: any) => s.longest_streak >= 30 },
+    { id: 'xp_machine', name: 'XP Machine', icon: '⚡', description: 'Earn 1,000 XP total', check: (s: any) => s.total_xp >= 1000 },
 ];
 
-const LEVEL_THRESHOLDS = [
-    0,      // Level 1: Rookie
-    100,    // Level 2: Beginner
-    300,    // Level 3: Getting Serious
-    600,    // Level 4: Committed
-    1000,   // Level 5: Machine
-    1500,   // Level 6: Unstoppable
-    2500,   // Level 7: Elite
-    4000,   // Level 8: Legendary
-    6000,   // Level 9: Mythic
-    10000,  // Level 10: God Mode
-];
+import { calculateLevel } from './level-utils';
 
 export const XP_VALUES = {
-    task_completed: 10,
+    task_completed: 50,
     task_verified_photo: 25,
     checkin_bonus_perfect: 15,  // Answered within 2 mins
     checkin_bonus_ok: 5,        // Answered within 5 mins
@@ -39,28 +28,6 @@ export const XP_PENALTIES = {
     missed_checkin: -20,
     streak_broken: -50,
 };
-
-export function calculateLevel(totalXp: number): { level: number; nextThreshold: number; progress: number } {
-    let level = 1;
-    let nextThreshold = LEVEL_THRESHOLDS[1];
-    let prevThreshold = 0;
-
-    for (let i = 0; i < LEVEL_THRESHOLDS.length; i++) {
-        if (totalXp >= LEVEL_THRESHOLDS[i]) {
-            level = i + 1;
-            prevThreshold = LEVEL_THRESHOLDS[i];
-            nextThreshold = LEVEL_THRESHOLDS[i + 1] || LEVEL_THRESHOLDS[i] * 1.5; // Scale infinitely past 10
-        } else {
-            break;
-        }
-    }
-
-    const levelTotalXp = nextThreshold - prevThreshold;
-    const levelCurrentXp = totalXp - prevThreshold;
-    const progress = Math.max(0, Math.min(100, Math.round((levelCurrentXp / levelTotalXp) * 100)));
-
-    return { level, nextThreshold, progress };
-}
 
 export async function addTempXpToLog(statsId: string, userLog: any[], xpAmount: number, dateStr: string) {
     let newLog = Array.isArray(userLog) ? [...userLog] : [];
@@ -96,7 +63,15 @@ export async function awardXp(amount: number, reason: string): Promise<{ leveled
 
         if (!currentStats) throw new Error('Stats not found');
 
-        const newXp = Math.max(0, currentStats.total_xp + amount); // Don't go below 0
+        // Apply Streak Multiplier (starts at 1x, +0.05 per extra day)
+        // streak 1 = 1.0x, streak 2 = 1.05x, streak 3 = 1.10x
+        const currentStreak = Math.max(1, currentStats.current_streak || 1);
+        const multiplier = 1.0 + ((currentStreak - 1) * 0.05);
+
+        // Calculate final XP to add (don't multiply negative amounts)
+        const finalAmount = amount > 0 ? Math.round(amount * multiplier) : amount;
+
+        const newXp = Math.max(0, currentStats.total_xp + finalAmount); // Don't go below 0
         const oldLevelData = calculateLevel(currentStats.total_xp);
         const newLevelData = calculateLevel(newXp);
 

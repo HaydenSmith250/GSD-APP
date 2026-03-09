@@ -13,7 +13,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { message } = await request.json();
+        const { message, sessionId } = await request.json();
 
         if (!message || typeof message !== 'string' || message.trim().length === 0) {
             return NextResponse.json({ success: false, error: 'Message is required' }, { status: 400 });
@@ -24,10 +24,11 @@ export async function POST(request: Request) {
             role: 'user',
             content: message.trim(),
             source: 'web',
+            session_id: sessionId,
         });
 
         // 2. Build full context (all 3 memory layers + tasks + stats)
-        const context = await buildFullContext();
+        const context = await buildFullContext(sessionId);
 
         // 3. Add the new user message to the conversation
         const messagesForAI = [
@@ -49,17 +50,26 @@ export async function POST(request: Request) {
             role: 'assistant',
             content: aiResponse,
             source: 'web',
+            session_id: sessionId,
         });
 
         // 6. Check if we should trigger memory extraction (every 5 messages)
-        const msgCount = await getMessageCount();
+        const msgCount = await getMessageCount(sessionId);
         if (msgCount > 0 && msgCount % 5 === 0) {
             // Fetch last 10 messages for extraction (fire and forget)
-            const { data: recentMsgs } = await supabaseAdmin
+            let query = supabaseAdmin
                 .from('messages')
                 .select('role, content')
                 .order('created_at', { ascending: false })
                 .limit(10);
+
+            if (sessionId) {
+                query = query.eq('session_id', sessionId);
+            } else {
+                query = query.is('session_id', null);
+            }
+
+            const { data: recentMsgs } = await query;
 
             if (recentMsgs && recentMsgs.length >= 3) {
                 // Don't await — run in background
@@ -86,18 +96,29 @@ export async function POST(request: Request) {
 }
 
 // GET — fetch recent messages for chat history
-export async function GET() {
+export async function GET(request: Request) {
     try {
         const isAuthenticated = await validateSession();
         if (!isAuthenticated) {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { data, error } = await supabaseAdmin
+        const { searchParams } = new URL(request.url);
+        const sessionId = searchParams.get('sessionId');
+
+        let query = supabaseAdmin
             .from('messages')
-            .select('id, role, content, source, created_at')
+            .select('id, role, content, source, created_at, session_id')
             .order('created_at', { ascending: true })
             .limit(50);
+
+        if (sessionId) {
+            query = query.eq('session_id', sessionId);
+        } else {
+            query = query.is('session_id', null);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
 

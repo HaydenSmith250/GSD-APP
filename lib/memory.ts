@@ -7,11 +7,11 @@ export interface FullContext {
 }
 
 // Build the complete context for an AI call
-export async function buildFullContext(): Promise<FullContext> {
+export async function buildFullContext(sessionId?: string): Promise<FullContext> {
     // Fetch all context in parallel
     const [userConfig, recentMessages, topMemories, currentTasks, currentStats] = await Promise.all([
         getUserConfig(),
-        getRecentMessages(30),
+        getRecentMessages(30, sessionId),
         getTopMemories(10),
         getCurrentTasks(),
         getStats(),
@@ -84,12 +84,20 @@ async function getUserConfig() {
     return data;
 }
 
-async function getRecentMessages(count: number) {
-    const { data } = await supabaseAdmin
+async function getRecentMessages(count: number, sessionId?: string) {
+    let query = supabaseAdmin
         .from('messages')
-        .select('role, content, source, created_at')
+        .select('role, content, source, created_at, session_id')
         .order('created_at', { ascending: true })
         .limit(count);
+
+    if (sessionId) {
+        query = query.eq('session_id', sessionId);
+    } else {
+        query = query.is('session_id', null);
+    }
+
+    const { data } = await query;
     return data || [];
 }
 
@@ -138,6 +146,7 @@ export async function saveMessage(msg: {
     role: 'user' | 'assistant' | 'system';
     content: string;
     source: 'web' | 'telegram' | 'system';
+    session_id?: string;
     metadata?: Record<string, unknown>;
 }) {
     const { data, error } = await supabaseAdmin
@@ -146,6 +155,7 @@ export async function saveMessage(msg: {
             role: msg.role,
             content: msg.content,
             source: msg.source,
+            session_id: msg.session_id,
             metadata: msg.metadata || {},
         })
         .select()
@@ -159,9 +169,17 @@ export async function saveMessage(msg: {
 }
 
 // Get total message count (for memory extraction trigger)
-export async function getMessageCount(): Promise<number> {
-    const { count } = await supabaseAdmin
+export async function getMessageCount(sessionId?: string): Promise<number> {
+    let query = supabaseAdmin
         .from('messages')
         .select('*', { count: 'exact', head: true });
+
+    if (sessionId) {
+        query = query.eq('session_id', sessionId);
+    } else {
+        query = query.is('session_id', null);
+    }
+
+    const { count } = await query;
     return count || 0;
 }

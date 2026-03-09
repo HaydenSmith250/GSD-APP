@@ -11,11 +11,19 @@ export async function GET() {
             .from('stats')
             .select('*')
             .limit(1)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 
-        return NextResponse.json({ success: true, data: stats });
+        const fallbackStats = {
+            level: 1,
+            total_xp: 0,
+            tasks_completed: 0,
+            tasks_unfinished: 0,
+            current_streak: 0
+        };
+
+        return NextResponse.json({ success: true, data: stats || fallbackStats });
     } catch (error) {
         return NextResponse.json({ success: false, error: 'Failed to fetch stats' }, { status: 500 });
     }

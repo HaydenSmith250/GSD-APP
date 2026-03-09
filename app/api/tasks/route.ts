@@ -18,7 +18,12 @@ export async function GET(request: Request) {
 
         if (status) {
             if (status === 'active') {
-                query = query.in('status', ['pending', 'in_progress', 'awaiting_verification']);
+                const now = new Date().toISOString();
+                query = query
+                    .in('status', ['pending', 'in_progress'])
+                    .or(`due_date.is.null,due_date.gte.${now}`);
+            } else if (status === 'completed') {
+                query = query.eq('status', 'verified');
             } else {
                 query = query.eq('status', status);
             }
@@ -72,7 +77,6 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, data });
     } catch (error) {
-        console.error(error);
-        return NextResponse.json({ success: false, error: 'Failed to create task' }, { status: 500 });
+        return NextResponse.json({ success: false, error: (error as Error)?.message || 'Failed to create task' }, { status: 500 });
     }
 }
