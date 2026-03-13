@@ -424,7 +424,7 @@ export default function ActiveTaskPage() {
                         </div>
 
                         {/* Camera Controls */}
-                        <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-black via-black/80 to-transparent flex items-center justify-center gap-12 pb-8">
+                        <div className="absolute bottom-[calc(80px+env(safe-area-inset-bottom))] inset-x-0 h-40 bg-gradient-to-t from-black via-black/80 to-transparent flex items-center justify-center gap-12 pb-8">
                             <button
                                 onClick={closeCamera}
                                 className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors backdrop-blur-md"
@@ -434,7 +434,7 @@ export default function ActiveTaskPage() {
 
                             <button
                                 onClick={capturePhoto}
-                                className="w-20 h-20 rounded-full border-4 border-neon-green flex items-center justify-center group active:scale-95 transition-transform"
+                                className="w-20 h-20 rounded-full border-4 border-neon-green flex items-center justify-center group active:scale-95 transition-transform shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
                             >
                                 <div className="w-16 h-16 rounded-full bg-neon-green shadow-[0_0_30px_rgba(0,255,153,0.5)] group-hover:bg-[#00e65c] transition-colors" />
                             </button>
@@ -452,14 +452,15 @@ export default function ActiveTaskPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm px-4 pb-8"
+                        className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md px-4 pb-[calc(80px+env(safe-area-inset-bottom))]"
                     >
                         <motion.div
-                            initial={{ y: 60, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: 60, opacity: 0 }}
+                            initial={{ y: 40, opacity: 0, scale: 0.95 }}
+                            animate={{ y: 0, opacity: 1, scale: 1 }}
+                            exit={{ y: 40, opacity: 0, scale: 0.95 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            className="glass-card p-5 w-full max-w-sm space-y-4"
+                            className="glass-card p-6 w-full max-w-sm space-y-5 shadow-[0_0_40px_rgba(0,0,0,0.5)]"
+                            style={{ background: 'linear-gradient(145deg, rgba(30,30,30,0.9) 0%, rgba(10,10,10,0.95) 100%)' }}
                         >
                             <p className="text-sm font-semibold text-white/70 uppercase tracking-widest text-center">Confirm Photo</p>
                             {/* eslint-disable-next-line @next/next/no-img-element */}

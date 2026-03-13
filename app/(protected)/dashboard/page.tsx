@@ -137,7 +137,7 @@ export default function DashboardPage() {
                     initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
                     className="text-4xl font-heading font-black text-white relative z-10 text-center px-4"
                 >
-                    Let's execute, <span className="bg-gradient-to-r from-neon-blue to-neon-green bg-clip-text text-transparent break-words whitespace-pre-wrap">{userName}</span>.
+                    Let's execute, <span className="bg-gradient-to-r from-neon-blue via-neon-green to-neon-blue bg-[length:200%_auto] bg-clip-text text-transparent break-words whitespace-pre-wrap animate-text-gradient">{userName}</span>.
                 </motion.h1>
                 <motion.p
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
@@ -300,9 +300,10 @@ export default function DashboardPage() {
                         onClick={() => setSelectedBadgeLevel(null)}
                     >
                         <motion.div
-                            initial={{ scale: 0.9, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.9, y: 20 }}
+                            initial={{ scale: 0.5, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 1.1, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                             className="bg-gsd-surface border border-white/10 rounded-3xl p-6 max-w-sm w-full relative overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                             style={{ background: 'linear-gradient(145deg, rgba(30,30,30,0.9) 0%, rgba(10,10,10,0.95) 100%)' }}

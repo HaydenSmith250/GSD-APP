@@ -18,10 +18,7 @@ export async function GET(request: Request) {
 
         if (status) {
             if (status === 'active') {
-                const now = new Date().toISOString();
-                query = query
-                    .in('status', ['pending', 'in_progress'])
-                    .or(`due_date.is.null,due_date.gte.${now}`);
+                query = query.in('status', ['pending', 'in_progress']);
             } else if (status === 'completed') {
                 query = query.eq('status', 'verified');
             } else {
@@ -32,7 +29,46 @@ export async function GET(request: Request) {
         const { data, error } = await query;
         if (error) throw error;
 
-        return NextResponse.json({ success: true, data: data || [] });
+        let returnedData = data || [];
+
+        // If requesting active, gracefully fail any tasks that are past due_date immediately, rather than waiting for cron.
+        if (status === 'active') {
+            const nowTime = new Date().getTime();
+            const overdueIds: string[] = [];
+            
+            returnedData = returnedData.filter((t: any) => {
+                if (t.due_date) {
+                    const dueTime = new Date(t.due_date).getTime();
+                    if (dueTime < nowTime) {
+                        overdueIds.push(t.id);
+                        return false; // remove from active array
+                    }
+                }
+                return true;
+            });
+
+            // Fire and forget update to fail overdue tasks that are still pending/in_progress
+            if (overdueIds.length > 0) {
+                (async () => {
+                    try {
+                        await supabaseAdmin
+                            .from('tasks')
+                            .update({ status: 'failed', completed_at: new Date().toISOString() })
+                            .in('id', overdueIds);
+
+                        console.log(`Auto-failed ${overdueIds.length} overdue tasks during GET`);
+                        
+                        const s = await supabaseAdmin.from('stats').select('tasks_unfinished').limit(1).maybeSingle();
+                        const unfinCount = (s.data?.tasks_unfinished || 0) + overdueIds.length;
+                        await supabaseAdmin.from('stats').update({ tasks_unfinished: unfinCount, current_streak: 0 }).neq('id', '00000000-0000-0000-0000-000000000000');
+                    } catch (e) {
+                        console.error("Auto-fail update error:", e);
+                    }
+                })();
+            }
+        }
+
+        return NextResponse.json({ success: true, data: returnedData });
     } catch (error) {
         return NextResponse.json({ success: false, error: 'Failed to fetch tasks' }, { status: 500 });
     }

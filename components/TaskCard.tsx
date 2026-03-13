@@ -72,11 +72,10 @@ export default function TaskCard({ task, onComplete, onSnooze }: TaskCardProps) 
                 onClick={() => {
                     triggerHaptic();
                     playSound('button_press');
-                    // If we need to go to details or verification page
-                    if (task.status === 'awaiting_verification') {
-                        router.push(`/tasks/${task.id}/verify`);
-                    }
+                    // Always jump to the active tracking/details view for any task
+                    router.push(`/tasks/${task.id}/active`);
                 }}
+
             >
                 <div className="flex-1 pr-4 pointer-events-none min-w-0">
                     <h3 className="font-bold text-white text-lg truncate">{task.title}</h3>

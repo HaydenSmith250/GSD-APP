@@ -160,11 +160,9 @@ export default function TaskCreateSheet({ isOpen, onClose, onSuccess, initialDat
             onSuccess(task);
             onClose();
 
-            // Direct route into the task context if it's meant for right now
-            if (!isScheduled || (dueTime && isTimeCloseToNow(dueDate, dueTime))) {
-                router.push(`/tasks/${task.id}/active`);
-            }
+            // Task now goes into queue regardless, so we don't automatically router.push
         } catch (error) {
+
             console.error('Error creating task:', error);
             playSound('verify_fail');
         } finally {
@@ -194,11 +192,11 @@ export default function TaskCreateSheet({ isOpen, onClose, onSuccess, initialDat
                     />
 
                     <motion.div
-                        initial={{ y: '100%' }}
-                        animate={{ y: 0 }}
-                        exit={{ y: '100%' }}
+                        initial={{ y: '20%', opacity: 0, scale: 0.95 }}
+                        animate={{ y: 0, opacity: 1, scale: 1 }}
+                        exit={{ y: '20%', opacity: 0, scale: 0.95 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed bottom-0 left-0 right-0 z-[101] max-h-[90vh] overflow-y-auto bg-gsd-surface border-t border-white/10 rounded-t-3xl p-6 pb-[calc(3rem+env(safe-area-inset-bottom))] shadow-[0_-20px_60px_rgba(0,0,0,0.8)] safe-scrollbar"
+                        className="fixed inset-x-4 top-[10%] md:top-1/2 md:-translate-y-1/2 max-w-sm mx-auto z-[101] max-h-[80vh] overflow-y-auto glass-card border border-white/10 rounded-3xl p-6 shadow-[0_20px_60px_rgba(0,0,0,0.8)] safe-scrollbar"
                     >
                         <div className="flex justify-between items-center mb-6">
                             {step === 2 ? (

@@ -20,8 +20,9 @@
 /* ═══ GSD Gamification Design System ═══ */
 
 :root {
-  --bg-primary: #0A0A0F;
-  --bg-secondary: #15151A;
+  --bg-primary: #05050A; /* Darkened for galaxy effect */
+  --bg-secondary: #0A0A0F;
+
 
   /* Text */
   --text-primary: #F1F5F9;
@@ -56,10 +57,49 @@ body {
 body {
   background: var(--bg-primary);
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.08), transparent),
-    radial-gradient(ellipse 60% 40% at 80% 60%, rgba(16, 185, 129, 0.04), transparent);
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 229, 255, 0.05), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 60%, rgba(57, 255, 20, 0.03), transparent);
   background-attachment: fixed;
 }
+
+/* ═══ Galaxy Background ═══ */
+
+.bg-galaxy {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(0, 229, 255, 0.08), transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(138, 43, 226, 0.08), transparent 50%);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-galaxy::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background-image: radial-gradient(1.5px 1.5px at 20px 30px, rgba(255, 255, 255, 0.4), transparent),
+                    radial-gradient(1.5px 1.5px at 40px 70px, rgba(255, 255, 255, 0.3), transparent),
+                    radial-gradient(2px 2px at 90px 40px, rgba(255, 255, 255, 0.5), transparent),
+                    radial-gradient(2.5px 2.5px at 160px 120px, rgba(255, 255, 255, 0.2), transparent);
+  background-repeat: repeat;
+  background-size: 250px 250px;
+  animation: rotate-stars 200s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes rotate-stars {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 
 /* ═══ Scrollbar ═══ */
 
@@ -156,6 +196,17 @@ body {
 
 .animate-slide-up {
   animation: slide-up 0.3s ease-out forwards;
+}
+
+@keyframes text-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-text-gradient {
+  background-size: 200% auto;
+  animation: text-gradient 4s linear infinite;
 }
 
 /* ═══ Selection ═══ */
