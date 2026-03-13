@@ -5,8 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Clock, Camera, Sparkles, ChevronDown, ArrowRight, ArrowLeft, CalendarDays, Rocket } from 'lucide-react';
 import { playSound } from '@/lib/sounds';
 import { triggerHaptic } from '@/lib/haptics';
-import { useRouter } from 'next/navigation';
-
 interface TaskCreateSheetProps {
     isOpen: boolean;
     onClose: () => void;
@@ -15,7 +13,6 @@ interface TaskCreateSheetProps {
 }
 
 export default function TaskCreateSheet({ isOpen, onClose, onSuccess, initialDate }: TaskCreateSheetProps) {
-    const router = useRouter();
     const [step, setStep] = useState<1 | 2>(1);
 
     // Step 1 State
@@ -26,7 +23,6 @@ export default function TaskCreateSheet({ isOpen, onClose, onSuccess, initialDat
     // Step 2 State
     const [isScheduled, setIsScheduled] = useState(false);
     const [durationMinutes, setDurationMinutes] = useState('30');
-    const [requiresVerification, setRequiresVerification] = useState(false);
     const [dueDate, setDueDate] = useState<string>(initialDate ? initialDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
     const [dueTime, setDueTime] = useState<string>(''); // empty means all-day
     const [recurringPattern, setRecurringPattern] = useState<'none' | 'daily' | 'weekdays' | 'weekly' | 'monthly'>('none');
@@ -148,7 +144,6 @@ export default function TaskCreateSheet({ isOpen, onClose, onSuccess, initialDat
             setIsTimed(false);
             setIsScheduled(false);
             setDurationMinutes('30');
-            setRequiresVerification(false);
             setStartVerificationPrompt('');
             setEndVerificationPrompt('');
             setSuggestions([]);
@@ -168,15 +163,6 @@ export default function TaskCreateSheet({ isOpen, onClose, onSuccess, initialDat
         } finally {
             setLoading(false);
         }
-    };
-
-    const isTimeCloseToNow = (dateStr: string, timeStr: string) => {
-        if (!timeStr) return true;
-        const now = new Date();
-        const scheduledStr = `${dateStr}T${timeStr}:00`;
-        const scheduled = new Date(scheduledStr);
-        const diffMinutes = (scheduled.getTime() - now.getTime()) / 60000;
-        return (diffMinutes <= 15 && diffMinutes >= -60);
     };
 
     return (
