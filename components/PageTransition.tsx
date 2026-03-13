@@ -10,10 +10,10 @@ export default function PageTransition({ children }: { children: React.ReactNode
         <AnimatePresence mode="wait">
             <motion.main
                 key={pathname}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30, mass: 0.8 }}
                 className="flex-1 w-full flex flex-col min-h-screen pb-24 overflow-x-hidden"
             >
                 {children}

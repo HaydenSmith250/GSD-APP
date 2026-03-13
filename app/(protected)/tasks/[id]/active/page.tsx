@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, Goal, Info, RefreshCw, XCircle, Trophy, ArrowLeft } from 'lucide-react';
+import { Camera, Goal, Info, RefreshCw, XCircle, Trophy, ArrowLeft, CheckCircle } from 'lucide-react';
 
 export default function ActiveTaskPage() {
     const { id } = useParams();
@@ -20,6 +20,8 @@ export default function ActiveTaskPage() {
     const [xpFloat, setXpFloat] = useState<{ amount: string; key: number } | null>(null);
     const [levelUpInfo, setLevelUpInfo] = useState<{ level: number } | null>(null);
     const [pendingUpload, setPendingUpload] = useState<{ file: File; preview: string; checkinType: string } | null>(null);
+
+    const [showStartedFeedback, setShowStartedFeedback] = useState(false);
 
     // Custom Camera State
     const [showCamera, setShowCamera] = useState<string | null>(null); // contains checkinType if open
@@ -167,6 +169,9 @@ export default function ActiveTaskPage() {
                         setTimeout(() => setLevelUpInfo(null), 3500);
                     }
                     await loadTask();
+                    if (checkinType === 'start') {
+                        setShowStartedFeedback(true);
+                    }
                     if (checkinType === 'end' || checkinType === 'goal_finish') {
                         setTimeout(() => router.push('/tasks'), 3000);
                     }
@@ -376,7 +381,7 @@ export default function ActiveTaskPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 bg-black flex items-center justify-center overflow-hidden"
+                        className="fixed inset-0 z-[60] bg-black flex items-center justify-center overflow-hidden"
                     >
                         {/* Live Video Feed */}
                         <video
@@ -424,7 +429,7 @@ export default function ActiveTaskPage() {
                         </div>
 
                         {/* Camera Controls */}
-                        <div className="absolute bottom-[calc(80px+env(safe-area-inset-bottom))] inset-x-0 h-40 bg-gradient-to-t from-black via-black/80 to-transparent flex items-center justify-center gap-12 pb-8">
+                        <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-black via-black/80 to-transparent flex items-center justify-center gap-12 pb-[calc(20px+env(safe-area-inset-bottom,0px))]">
                             <button
                                 onClick={closeCamera}
                                 className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors backdrop-blur-md"
@@ -452,36 +457,78 @@ export default function ActiveTaskPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-md px-4 pb-[calc(80px+env(safe-area-inset-bottom))]"
+                        className="fixed inset-0 z-[60] flex flex-col justify-end bg-black/80 backdrop-blur-md"
                     >
                         <motion.div
-                            initial={{ y: 40, opacity: 0, scale: 0.95 }}
-                            animate={{ y: 0, opacity: 1, scale: 1 }}
-                            exit={{ y: 40, opacity: 0, scale: 0.95 }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            className="glass-card p-6 w-full max-w-sm space-y-5 shadow-[0_0_40px_rgba(0,0,0,0.5)]"
-                            style={{ background: 'linear-gradient(145deg, rgba(30,30,30,0.9) 0%, rgba(10,10,10,0.95) 100%)' }}
+                            initial={{ y: 60, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 60, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 28, stiffness: 240 }}
+                            className="glass-card p-6 w-full space-y-5 shadow-[0_-20px_40px_rgba(0,0,0,0.7)] rounded-t-3xl rounded-b-none border-t border-white/10"
+                            style={{ marginBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}
                         >
-                            <p className="text-sm font-semibold text-white/70 uppercase tracking-widest text-center">Confirm Photo</p>
+                            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto" />
+                            <p className="text-sm font-bold text-white/70 uppercase tracking-widest text-center">Confirm Photo</p>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src={pendingUpload.preview}
                                 alt="Preview"
-                                className="w-full rounded-xl object-cover max-h-64"
+                                className="w-full rounded-2xl object-cover max-h-[40vh]"
                             />
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => { URL.revokeObjectURL(pendingUpload.preview); setPendingUpload(null); }}
-                                    className="flex-1 py-3 rounded-xl font-semibold text-sm text-white bg-white/10 hover:bg-white/20 transition-colors"
+                                    className="flex-1 py-3 rounded-2xl font-semibold text-sm text-white bg-white/10 hover:bg-white/20 transition-colors"
                                 >
                                     ✕ Retake
                                 </button>
                                 <button
                                     onClick={handleConfirmUpload}
                                     disabled={uploading}
-                                    className="flex-1 py-3 rounded-xl font-semibold text-sm text-white bg-emerald-600 hover:bg-emerald-500 transition-colors disabled:opacity-50"
+                                    className="flex-1 py-3 rounded-2xl font-black text-sm text-black bg-neon-green hover:bg-[#00e65c] transition-colors disabled:opacity-50"
                                 >
-                                    {uploading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" /> : '✓ Upload'}
+                                    {uploading ? <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin mx-auto" /> : '✓ Upload'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Task Started Feedback Overlay */}
+            <AnimatePresence>
+                {showStartedFeedback && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[65] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20, opacity: 0 }}
+                            animate={{ scale: 1, y: 0, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 22, stiffness: 200 }}
+                            className="glass-card p-8 w-full max-w-sm border border-neon-green/20 shadow-[0_0_40px_rgba(57,255,20,0.1)] text-center space-y-4"
+                        >
+                            <div className="w-16 h-16 rounded-full bg-neon-green/10 flex items-center justify-center mx-auto border border-neon-green/30">
+                                <CheckCircle size={36} className="text-neon-green" />
+                            </div>
+                            <h2 className="text-xl font-black font-heading text-white">Task Started</h2>
+                            <p className="text-sm text-gray-400 leading-relaxed">It&apos;s live in your queue. Stay locked in — come back to verify completion.</p>
+                            <div className="space-y-2 pt-2">
+                                <button
+                                    onClick={() => setShowStartedFeedback(false)}
+                                    className="w-full py-3 rounded-2xl font-black text-black text-sm"
+                                    style={{ background: 'var(--color-neon-green)' }}
+                                >
+                                    Continue Here
+                                </button>
+                                <button
+                                    onClick={() => router.push('/tasks')}
+                                    className="w-full py-3 rounded-2xl font-semibold text-sm text-white/50 bg-white/5 hover:bg-white/10 transition-colors"
+                                >
+                                    Back to Task Queue
                                 </button>
                             </div>
                         </motion.div>

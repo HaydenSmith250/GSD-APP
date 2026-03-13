@@ -5,6 +5,12 @@ import { buildFullContext, saveMessage } from '@/lib/memory';
 import { processVerification } from '@/lib/verify-logic';
 
 export async function POST(req: Request) {
+    // Verify Telegram webhook secret token to prevent spoofed requests
+    const incomingSecret = req.headers.get('x-telegram-bot-api-secret-token');
+    if (process.env.TELEGRAM_WEBHOOK_SECRET && incomingSecret !== process.env.TELEGRAM_WEBHOOK_SECRET) {
+        return new Response('Unauthorized', { status: 401 });
+    }
+
     try {
         const update = await req.json();
         const chatId = update.message?.chat?.id;

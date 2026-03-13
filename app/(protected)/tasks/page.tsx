@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { X } from 'lucide-react';
 
 interface Task {
     id: string;
@@ -54,6 +55,14 @@ export default function TasksPage() {
     const [recurringPattern, setRecurringPattern] = useState('');
     const [generatingPrompt, setGeneratingPrompt] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+    // Lock body scroll when any modal is open
+    useEffect(() => {
+        const locked = isCreating || selectedTask !== null;
+        document.body.style.overflow = locked ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
+    }, [isCreating, selectedTask]);
 
     useEffect(() => {
         loadTasks();
@@ -93,6 +102,7 @@ export default function TasksPage() {
     }, [tasks, categoryFilter]);
 
     function openCreateModal() {
+        setSelectedTask(null);
         setEditingTask(null);
         setTitle('');
         setDescription('');
@@ -284,18 +294,32 @@ export default function TasksPage() {
                 </div>
             )}
 
-            {/* Create / Edit Modal */}
+            {/* Create / Edit Modal — Fixed Overlay */}
             <AnimatePresence>
                 {isCreating && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="glass-card p-6"
-                    >
-                        <h2 className="text-lg font-semibold text-white mb-4">
-                            {editingTask ? 'Edit Task' : 'Create New Task'}
-                        </h2>
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={closeModal}
+                            className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-md"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 40, scale: 0.95 }}
+                            transition={{ type: 'spring', damping: 28, stiffness: 200 }}
+                            className="fixed inset-x-4 top-[5%] md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-[28rem] z-[71] max-h-[88vh] overflow-y-auto glass-card border border-white/10 rounded-3xl p-6 shadow-[0_20px_60px_rgba(0,0,0,0.9)]"
+                        >
+                        <div className="flex items-center justify-between mb-5">
+                            <h2 className="text-xl font-heading font-black text-white">
+                                {editingTask ? 'Edit Task' : 'New Task'}
+                            </h2>
+                            <button onClick={closeModal} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/50 hover:bg-white/20 hover:text-white transition-colors">
+                                <X size={16} />
+                            </button>
+                        </div>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="text-xs text-white/70 block mb-1">Title</label>
@@ -468,13 +492,14 @@ export default function TasksPage() {
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="px-5 py-2 rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-60"
+                                    className="px-5 py-2 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-60"
                                 >
                                     {submitting ? 'Saving...' : editingTask ? 'Save Changes' : 'Create Task'}
                                 </button>
                             </div>
                         </form>
-                    </motion.div>
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
 
@@ -514,9 +539,11 @@ export default function TasksPage() {
                         return (
                             <motion.div
                                 key={task.id}
-                                initial={{ opacity: 0, y: 10 }}
+                                initial={{ opacity: 0, y: 14 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className={`glass-card p-4 flex flex-col md:flex-row gap-4 justify-between group ${overdue ? 'border border-red-500/30' : ''}`}
+                                transition={{ delay: Math.min(displayedTasks.indexOf(task) * 0.04, 0.2) }}
+                                onClick={() => { if (filter === 'active') setSelectedTask(task); }}
+                                className={`glass-card p-4 flex flex-col md:flex-row gap-4 justify-between group ${overdue ? 'border border-red-500/30' : ''} ${filter === 'active' ? 'cursor-pointer hover:bg-white/[0.06] transition-colors' : ''}`}
                             >
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -565,13 +592,14 @@ export default function TasksPage() {
                                         <>
                                             <Link
                                                 href={`/chat?task=${encodeURIComponent(task.title)}`}
+                                                onClick={(e) => e.stopPropagation()}
                                                 className="p-2 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/5 transition-colors"
                                                 title="Discuss with coach"
                                             >
                                                 💬
                                             </Link>
                                             <button
-                                                onClick={() => openEditModal(task)}
+                                                onClick={(e) => { e.stopPropagation(); openEditModal(task); }}
                                                 className="p-2 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/5 transition-colors"
                                                 title="Edit task"
                                             >
@@ -579,6 +607,7 @@ export default function TasksPage() {
                                             </button>
                                             <Link
                                                 href={`/tasks/${task.id}/active`}
+                                                onClick={(e) => e.stopPropagation()}
                                                 className="px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-lg shadow-blue-500/20 bg-blue-600 hover:bg-blue-500 transition-colors whitespace-nowrap"
                                             >
                                                 {task.status === 'pending' ? 'Start Task' : 'Resume'}
@@ -596,6 +625,111 @@ export default function TasksPage() {
                     })
                 )}
             </div>
+            {/* Task Detail Modal */}
+            <AnimatePresence>
+                {selectedTask && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedTask(null)}
+                            className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, y: 60, scale: 0.97 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 60, scale: 0.97 }}
+                            transition={{ type: 'spring', damping: 28, stiffness: 200 }}
+                            className="fixed inset-x-4 z-[71] glass-card border border-white/10 rounded-3xl p-6 shadow-[0_-20px_60px_rgba(0,0,0,0.9)] overflow-y-auto max-h-[75vh]"
+                            style={{ bottom: 'calc(88px + env(safe-area-inset-bottom, 0px))' }}
+                        >
+                            {/* Close */}
+                            <button
+                                onClick={() => setSelectedTask(null)}
+                                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/50 hover:bg-white/20 hover:text-white transition-colors"
+                            >
+                                <X size={16} />
+                            </button>
+
+                            {/* Priority badge */}
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: getPriorityColor(selectedTask.priority) }} />
+                                <span className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>{selectedTask.priority} priority</span>
+                            </div>
+
+                            {/* Title */}
+                            <h2 className="text-2xl font-black font-heading text-white mb-3 pr-8 leading-tight">{selectedTask.title}</h2>
+
+                            {/* XP + badges row */}
+                            <div className="flex items-center gap-2 flex-wrap mb-4">
+                                <span className="inline-flex items-center px-3 py-1.5 rounded-full text-black font-black text-sm" style={{ background: 'var(--color-neon-amber)' }}>
+                                    +{selectedTask.xp_reward} XP
+                                </span>
+                                <span className="px-2.5 py-1 rounded-full text-xs capitalize text-white/40 bg-white/5 border border-white/10">
+                                    {selectedTask.task_type}
+                                </span>
+                                {selectedTask.category && selectedTask.category !== 'general' && (
+                                    <span className="px-2.5 py-1 rounded-full text-xs capitalize" style={{ background: `${CATEGORY_COLORS[(selectedTask.category || 'other').toLowerCase()] || CATEGORY_COLORS.other}18`, color: CATEGORY_COLORS[(selectedTask.category || 'other').toLowerCase()] || CATEGORY_COLORS.other }}>
+                                        {selectedTask.category}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Description */}
+                            {selectedTask.description && (
+                                <p className="text-sm text-white/60 leading-relaxed mb-4">{selectedTask.description}</p>
+                            )}
+
+                            {/* Verification / Proof Standard */}
+                            {(() => {
+                                let vPrompt = selectedTask.verification_prompt || '';
+                                try {
+                                    if (vPrompt.startsWith('{')) {
+                                        const parsed = JSON.parse(vPrompt);
+                                        vPrompt = parsed.end || parsed.start || vPrompt;
+                                    }
+                                } catch {}
+                                return vPrompt ? (
+                                    <div className="border-l-2 border-neon-blue/50 pl-4 mb-4">
+                                        <p className="text-xs font-bold text-neon-blue/70 uppercase tracking-widest mb-1.5">Proof Standard</p>
+                                        <p className="text-sm text-white/70 leading-relaxed">{vPrompt}</p>
+                                    </div>
+                                ) : null;
+                            })()}
+
+                            {/* Due date */}
+                            {selectedTask.due_date && (
+                                <div className="flex items-center gap-2 mb-4">
+                                    <span className="text-xs text-white/30">📅</span>
+                                    <span className="text-xs text-white/40">{new Date(selectedTask.due_date).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                            )}
+
+                            <div className="border-t border-white/10 my-5" />
+
+                            {/* CTAs */}
+                            <div className="space-y-3">
+                                <Link
+                                    href={`/tasks/${selectedTask.id}/active`}
+                                    onClick={() => setSelectedTask(null)}
+                                    className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-black text-black text-sm shadow-[0_0_20px_rgba(0,229,255,0.25)] active:scale-95 transition-transform"
+                                    style={{ background: 'var(--color-neon-blue)' }}
+                                >
+                                    {selectedTask.status === 'pending' ? 'Start Task' : 'Resume Task'}
+                                </Link>
+                                <Link
+                                    href={`/chat?task=${encodeURIComponent(selectedTask.title)}`}
+                                    onClick={() => setSelectedTask(null)}
+                                    className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl font-semibold text-sm text-white/60 bg-white/5 hover:bg-white/10 transition-colors"
+                                >
+                                    💬 Chat with Coach
+                                </Link>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

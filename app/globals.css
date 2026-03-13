@@ -71,11 +71,12 @@ body {
   right: 0;
   bottom: 0;
   z-index: -1;
-  background-image: 
+  background-image:
     radial-gradient(circle at 15% 50%, rgba(0, 229, 255, 0.08), transparent 50%),
     radial-gradient(circle at 85% 30%, rgba(138, 43, 226, 0.08), transparent 50%);
   overflow: hidden;
   pointer-events: none;
+  animation: galaxy-breathe 8s ease-in-out infinite;
 }
 
 .bg-galaxy::before {
@@ -92,12 +93,42 @@ body {
   background-repeat: repeat;
   background-size: 250px 250px;
   animation: rotate-stars 200s linear infinite;
-  opacity: 0.6;
+  opacity: 0.75;
 }
 
 @keyframes rotate-stars {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+.bg-galaxy::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background-image: radial-gradient(1px 1px at 60px 10px, rgba(255, 255, 255, 0.5), transparent),
+                    radial-gradient(2px 2px at 130px 190px, rgba(255, 255, 255, 0.3), transparent),
+                    radial-gradient(1.5px 1.5px at 210px 50px, rgba(0, 229, 255, 0.4), transparent),
+                    radial-gradient(1px 1px at 300px 280px, rgba(138, 43, 226, 0.3), transparent),
+                    radial-gradient(2px 2px at 80px 150px, rgba(255, 255, 255, 0.35), transparent),
+                    radial-gradient(1.5px 1.5px at 320px 90px, rgba(57, 255, 20, 0.2), transparent);
+  background-repeat: repeat;
+  background-size: 350px 350px;
+  animation: drift-stars 300s linear infinite reverse;
+  opacity: 0.4;
+}
+
+@keyframes drift-stars {
+  0%   { transform: rotate(0deg) translateX(0px); }
+  50%  { transform: rotate(180deg) translateX(15px); }
+  100% { transform: rotate(360deg) translateX(0px); }
+}
+
+@keyframes galaxy-breathe {
+  0%, 100% { filter: brightness(1); }
+  50%       { filter: brightness(1.5); }
 }
 
 
@@ -206,7 +237,7 @@ body {
 
 .animate-text-gradient {
   background-size: 200% auto;
-  animation: text-gradient 4s linear infinite;
+  animation: text-gradient 8s ease-in-out infinite;
 }
 
 /* ═══ Selection ═══ */

@@ -127,3 +127,22 @@ ON CONFLICT DO NOTHING;
 INSERT INTO user_config (display_name, permanent_memory)
 VALUES ('User', '')
 ON CONFLICT DO NOTHING;
+
+-- ══════════════════════════════════════════════════════
+-- Row Level Security
+-- All access goes through the server-side API using the service role key,
+-- which bypasses RLS automatically. Enabling RLS prevents any direct
+-- client-side access from leaking data if anon keys were ever exposed.
+-- Run these in the Supabase SQL Editor on the live project.
+-- ══════════════════════════════════════════════════════
+
+ALTER TABLE user_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE memories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stats ENABLE ROW LEVEL SECURITY;
+ALTER TABLE schedules ENABLE ROW LEVEL SECURITY;
+
+-- NOTE: No additional policies are needed. The service_role key used by
+-- server-side code always bypasses RLS. Anonymous/anon key access is
+-- blocked by default when RLS is enabled with no permissive policies.

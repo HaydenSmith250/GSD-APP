@@ -137,7 +137,7 @@ export default function DashboardPage() {
                     initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
                     className="text-4xl font-heading font-black text-white relative z-10 text-center px-4"
                 >
-                    Let's execute, <span className="bg-gradient-to-r from-neon-blue via-neon-green to-neon-blue bg-[length:200%_auto] bg-clip-text text-transparent break-words whitespace-pre-wrap animate-text-gradient">{userName}</span>.
+                    Let's execute, <span className="bg-gradient-to-r from-neon-blue via-[#A855F7] via-neon-green to-neon-blue bg-[length:300%_auto] bg-clip-text text-transparent break-words whitespace-pre-wrap animate-text-gradient">{userName}</span>.
                 </motion.h1>
                 <motion.p
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}

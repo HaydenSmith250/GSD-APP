@@ -10,11 +10,14 @@ export async function GET(request: Request) {
     }
 
     try {
-        // 1. Find all active tasks
+        // 1. Find tasks to fail: only those with no due_date (daily tasks) OR past their due_date.
+        //    Tasks with a future due_date are goals still in progress — don't sweep them.
+        const now = new Date().toISOString();
         const { data: activeTasks, error: fetchError } = await supabaseAdmin
             .from('tasks')
             .select('id, xp_reward')
-            .in('status', ['pending', 'in_progress']);
+            .in('status', ['pending', 'in_progress'])
+            .or(`due_date.is.null,due_date.lt.${now}`);
 
         if (fetchError) throw fetchError;
 

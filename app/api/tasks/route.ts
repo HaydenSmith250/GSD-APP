@@ -47,24 +47,20 @@ export async function GET(request: Request) {
                 return true;
             });
 
-            // Fire and forget update to fail overdue tasks that are still pending/in_progress
+            // Await the update so overdue tasks are reliably marked failed before returning
             if (overdueIds.length > 0) {
-                (async () => {
-                    try {
-                        await supabaseAdmin
-                            .from('tasks')
-                            .update({ status: 'failed', completed_at: new Date().toISOString() })
-                            .in('id', overdueIds);
+                try {
+                    await supabaseAdmin
+                        .from('tasks')
+                        .update({ status: 'failed', completed_at: new Date().toISOString() })
+                        .in('id', overdueIds);
 
-                        console.log(`Auto-failed ${overdueIds.length} overdue tasks during GET`);
-                        
-                        const s = await supabaseAdmin.from('stats').select('tasks_unfinished').limit(1).maybeSingle();
-                        const unfinCount = (s.data?.tasks_unfinished || 0) + overdueIds.length;
-                        await supabaseAdmin.from('stats').update({ tasks_unfinished: unfinCount, current_streak: 0 }).neq('id', '00000000-0000-0000-0000-000000000000');
-                    } catch (e) {
-                        console.error("Auto-fail update error:", e);
-                    }
-                })();
+                    const s = await supabaseAdmin.from('stats').select('tasks_unfinished').limit(1).maybeSingle();
+                    const unfinCount = (s.data?.tasks_unfinished || 0) + overdueIds.length;
+                    await supabaseAdmin.from('stats').update({ tasks_unfinished: unfinCount, current_streak: 0 }).neq('id', '00000000-0000-0000-0000-000000000000');
+                } catch (e) {
+                    console.error("Auto-fail update error:", e);
+                }
             }
         }
 
@@ -84,6 +80,11 @@ export async function POST(request: Request) {
         const { title, description, priority, task_type, duration_minutes, checkin_interval_minutes, verification_prompt, category, due_date, recurring_pattern } = body;
 
         if (!title) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+        if (title.length > 200) return NextResponse.json({ error: 'Title too long (max 200 chars)' }, { status: 400 });
+        if (description && description.length > 2000) return NextResponse.json({ error: 'Description too long (max 2000 chars)' }, { status: 400 });
+        if (verification_prompt && verification_prompt.length > 1000) return NextResponse.json({ error: 'Verification prompt too long (max 1000 chars)' }, { status: 400 });
+        const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical'];
+        if (priority && !VALID_PRIORITIES.includes(priority)) return NextResponse.json({ error: 'Invalid priority' }, { status: 400 });
 
         const xp_reward = body.xp_reward || (task_type === 'timed' ? duration_minutes : 25); // Timed pays 1 XP per minute as base
 

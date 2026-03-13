@@ -12,6 +12,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         const { id } = await context.params;
         const body = await request.json();
 
+        // Input length validation
+        if (body.title !== undefined && body.title.length > 200) return NextResponse.json({ error: 'Title too long (max 200 chars)' }, { status: 400 });
+        if (body.description !== undefined && body.description.length > 2000) return NextResponse.json({ error: 'Description too long (max 2000 chars)' }, { status: 400 });
+        if (body.verification_prompt !== undefined && body.verification_prompt.length > 1000) return NextResponse.json({ error: 'Verification prompt too long (max 1000 chars)' }, { status: 400 });
+        const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical'];
+        if (body.priority !== undefined && !VALID_PRIORITIES.includes(body.priority)) return NextResponse.json({ error: 'Invalid priority' }, { status: 400 });
+
         const allowedUpdates = ['title', 'description', 'status', 'priority', 'verification_prompt', 'duration_minutes', 'checkin_interval_minutes', 'category', 'due_date', 'recurring_pattern', 'started_at', 'next_checkin_at', 'completed_at', 'verified_at'];
         const updateData: Record<string, any> = {};
 
